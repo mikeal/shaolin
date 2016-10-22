@@ -33,6 +33,31 @@ Ends up creating a full DOM of.
 </badger>
 ```
 
+You can set properties in the future and trigger a diff'd updated (like React).
+
+```javascript
+document.querySelector('badger').set('name', 'Not Honey')
+```
+
+Would change:
+
+```html
+<badger>
+  <div>Honey</div>
+  <div>Don't give a what?</div>
+</badger>
+```
+
+To:
+
+```html
+<badger>
+  <div>Not Honey</div>
+</badger>
+```
+
+Constructors are supported as well:
+
 ```javascript
 // You can also add constructors
 shaolin`
