@@ -7,9 +7,11 @@ const shaolin = require('shaolin')
 shaolin`
 <badger>
   <div>${attrs => attrs.name}</div>
-  ${attrs => {
-    if (attrs.name === 'Honey') return "<div>Don't give a what?</div>"
-  }}
+  <div>
+    ${attrs => {
+      if (attrs.name === 'Honey') return "Don't give a what?"
+    }}
+  </div>
 </badger>
 `
 ```
