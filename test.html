@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Test Shaolin</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/document-register-element/1.2.0/document-register-element.js"></script>
+  </head>
+  <body>
+    <script src="./bundle.js"></script>
+    <script>
+      assert = (exp, msg) => {
+        if (!exp) throw new Error(msg)
+      }
+
+      const TestOne = shaolin`
+      <test-one>
+        <span>Test 1</span>
+      </test-one>`
+    </script>
+
+    <test-one></test-one>
+
+    <script>
+      if (!document.querySelector('test-one span')) {
+        throw new Error('no span element')
+      }
+    </script>
+
+    <script>
+      const TestTwo = shaolin`
+      <test-two>
+        <span>Test ${attr => attr.testnum}</span>
+      </test-two>
+      `
+    </script>
+
+    <test-two testnum="two"></test-two>
+
+    <script>
+      let elem = document.querySelector('test-two')
+      assert(elem, 'no element')
+      document.querySelector('test-two').set('testnum', 'three')
+      let span = document.querySelector('test-two span').textContent
+      assert(span.indexOf('three') !== -1, 'span content not updated')
+    </script>
+
+
+
+  </body>
+</html>
