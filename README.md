@@ -35,16 +35,35 @@ Ends up creating a full DOM of.
 // You can also add constructors
 shaolin`
 ${ element => console.log('Called during construction.') }
-${ element => {
-  element.onProperty('nickname', value => {
-    // Called only when this property is set or changed.
-    console.log(value)
-  })
-} }
 <badger>
   <div>${attrs => attrs.name}</div>
 </badger>
 `
+```
 
-document.querySelector('badger').setAttribute('nickname', 'asdf')
+Elements are also the models for their own data. Setting properties
+will trigger `on` events.
+
+```javascript
+shaolin`
+${ element => {
+  element.on('nickname', value => {
+    // Called only when this property is set or changed.
+    console.log(value)
+  })
+} }
+<badger></badger>
+`
+document.querySelector('badger').set('nickname', 'asdf')
+```
+
+Also, the return value is the constructor. So you can subclass to create new
+components like so.
+
+```javascript
+
+const Badger = shaolin`<badger></badger>`
+
+const MyBadger extends Badger {}
+shaolin.define('my-badger', MyBadger)
 ```
