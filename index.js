@@ -1,7 +1,8 @@
-/* globals HTMLElement, customElements, MutationObserver */
+/* globals HTMLElement, customElements */
 const funky = require('../funky')
 const yo = require('yo-yo')
 const assign = require('lodash.assign')
+const bel = require('bel')
 
 function attributes (elem) {
   let attrs = {}
@@ -16,54 +17,111 @@ function parse (strings, values) {
   // The raw arrays are no actually mutable, copy.
   strings = strings.slice()
   values = values.slice()
-
-  let result = {constructors: [], destructors: []}
+  let shadowStrings = []
+  let shadowValues = []
+  let elementStrings = []
+  let elementValues = []
+  let constructors = []
   let s = strings.join('').replace(/ /g, '')
   let name = s.slice(s.indexOf('<') + 1, s.indexOf('>'))
-  let opener = `<${name}>`
-  let closer = `</${name}>`
 
-  // Parse constructors from beginning.
+  let fullstring = ''
+  let valueMap = {}
+
   let i = 0
-  while (i === 0) {
-    let str = strings[i].replace(/ /g, '')
-    if (str.indexOf(opener) !== -1) {
-      strings[i] = strings[i].replace(name, 'template')
-      i += 1
+  while (i < strings.length) {
+    fullstring += strings[i]
+    valueMap[fullstring.length + '-' + i] = values[i]
+    i++
+  }
+
+  let opener = `<${name}>`
+  let openPos = fullstring.indexOf(opener)
+  let closer = `</${name}>`
+  let closePos = fullstring.lastIndexOf(closer)
+
+  for (let posName in valueMap) {
+    let pos = +posName.slice(0, posName.indexOf('-'))
+    let val = valueMap[posName]
+
+    if (pos < openPos) constructors.push(val)
+    else if (pos > openPos && pos < closePos) {
+      elementValues.push(val)
+    } else if (pos > closePos) {
+      shadowValues.push(val)
     } else {
-      strings.shift()
-      result.constructors.push(values.shift())
+      throw new Error('Parser error, cannot assign value.')
     }
   }
-  // Parse desctructors from end.
-  i = strings.length - 1
-  while (i === (strings.length - 1)) {
-    let str = strings[i].replace(/ /g, '')
-    if (str.indexOf(closer) !== -1) {
-      let ls = strings[i]
-      let pos = ls.lastIndexOf(name)
-      strings[i] = ls.slice(0, pos) +
-                   'template' +
-                   ls.slice(pos + name.length)
-      i += 1
-    } else {
-      strings.pop()
-      result.destructors.push(values.pop())
-      i -= 1
+
+  i = 0
+  let pos = 0
+  while (i < strings.length) {
+    let str = strings[i]
+
+    let iter = () => {
+      if (pos >= fullstring.length) return
+      if (pos >= openPos) {
+        if (pos > closePos) {
+          shadowStrings.push(str)
+        } else {
+          if (str.indexOf(closer) !== -1) {
+            let _pos = str.indexOf(closer) + closer.length + 1
+            elementStrings.push(str.slice(0, _pos))
+            str = str.slice(_pos)
+            pos += _pos
+            return iter()
+          } else {
+            elementStrings.push(str)
+          }
+        }
+      } else {
+        if (str.indexOf(opener) !== -1) {
+          let _pos = str.indexOf(opener)
+          str = str.slice(_pos)
+          pos = pos + _pos
+          return iter()
+        }
+      }
+      pos = pos + str.length
     }
+    iter(0)
+    i++
   }
+
+  elementStrings[0] = elementStrings[0].replace(opener, '<template>')
+  let _len = elementStrings.length - 1
+  elementStrings[_len] = elementStrings[_len].replace(closer, '</template>')
+
   // TODO: type checking on constructors and destructors
 
-  result.name = name
-  result.s = s
-  result.strings = strings
-  result.values = values
+  let result = {
+    name,
+    constructors,
+    shadowStrings,
+    shadowValues,
+    elementStrings,
+    elementValues
+  }
   return result
+}
+
+function mergeStrings (arr1, arr2) {
+  let str = ''
+  let i = 0
+  while (i !== arr1.length) {
+    str += `${arr1[i]}${arr2[i]}`
+    i++
+  }
+  return str
 }
 
 function shaolin (strings, ...values) {
   let parsed = parse(strings, values)
-  let view = funky(parsed.strings, ...parsed.values)
+  if (parsed.name.indexOf('-') === -1) {
+    throw new Error('Custom element names must include a "-" character.')
+  }
+  let view = funky(parsed.elementStrings, ...parsed.elementValues)
   let ShaolinElement = class extends HTMLElement {
     constructor (self) {
       self = super(self)
@@ -76,6 +134,18 @@ function shaolin (strings, ...values) {
 
       self.constructors.forEach(c => c(self))
 
+      if (parsed.shadowStrings.length) {
+        let parsedValues = parsed.shadowValues.map(v => {
+          if (typeof v === 'function') return v(self) || ''
+          if (!v) return ''
+          return v
+        })
+        let shadowHTML = mergeStrings(parsed.shadowStrings, parsedValues)
+        if (shadowHTML.replace(/ /g, '').length) {
+          self.attachShadow({mode: 'open'}).innerHTML = shadowHTML
+        }
+      }
+
       // Call on methods for initial values.
       for (let key in self.db) {
         self.emit(key, self.db[key])
@@ -83,18 +153,16 @@ function shaolin (strings, ...values) {
 
       self.template = view(self.getAttributes())
       self.template.yoyoOpts.childrenOnly = true
-      ;[...self.template.children].forEach(el => {
-        self.appendChild(el)
-      })
+      yo.update(this, self.template, {childrenOnly: true})
       self.constructing = false
     }
 
     connectedCallback () {
-      this.set('connected', true)
+      this.set('connected', true, true)
     }
 
     disconnectedCallback () {
-      this.destructors.forEach(c => c(this))
+      this.set('connected', false, true)
     }
 
     update () {
@@ -102,7 +170,7 @@ function shaolin (strings, ...values) {
       yo.update(this, newel, {childrenOnly: true})
     }
 
-    set (key, value) {
+    set (key, value, noUpdate) {
       if (typeof value === 'string' ||
           typeof value === 'boolean' ||
           typeof value === 'number' ||
@@ -113,7 +181,7 @@ function shaolin (strings, ...values) {
       }
       this.db[key] = value
       this.emit(key, value)
-      if (!this.constructing) this.update()
+      if (!this.constructing && !noUpdate) this.update()
     }
 
     get (key) {

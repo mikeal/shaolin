@@ -11,6 +11,7 @@
     <script>
       assert = (exp, msg) => {
         if (!exp) throw new Error(msg)
+        console.log('assert ok', msg)
       }
 
       const TestOne = shaolin`
@@ -22,6 +23,7 @@
     <test-one></test-one>
 
     <script>
+      console.log(document.querySelector('test-one'))
       if (!document.querySelector('test-one span')) {
         throw new Error('no span element')
       }
@@ -45,7 +47,45 @@
       assert(span.indexOf('three') !== -1, 'span content not updated')
     </script>
 
+    <script>
+      let counter = 0
+      let called = 0
+      let test = (exp, msg) => {
+        assert(exp, msg)
+        if (msg === 'has text attr') {
+          if (!called) called = true
+          else throw new Error('here')
+        }
+        counter++
+      }
+      const TestAllElement = shaolin`
+      ${ elem => test(elem, 'no element to constructor') }
 
+      ${ elem => test(elem, 'no element to constructor') }
+      <test-all-features>
+        <div>${ attr => test(attr.text, 'has text attr')}
+             ${'test'}
+        </div>
+      </test-all-features>
+      <style>
+        :host {
+          padding: 100px;
+        }
+        ${ elem => test(elem, 'no element in shadow dom init') }
+      </style>
+      <div>
+        <span>shadow content</span>
+      </div>
+      <slot></slot>
+      ${ elem => test(elem, 'last did not get elem') }
+      `
+      </script>
+
+      <test-all-features text="msg"></test-all-features>
+
+      <script>
+        assert(counter === 5, 'counter should be 5')
+      </script>
 
   </body>
 </html>
