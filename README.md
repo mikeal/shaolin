@@ -1,4 +1,4 @@
-# Simple functional Web Components
+# Simple Functional Web Components
 
 You can easily define new custom elements with constructors,
 reactive rendering functions, and Shadow DOM.
@@ -44,55 +44,55 @@ Now let's back up and look at a simpler example.
 const shaolin = require('shaolin')
 
 shaolin`
-<badger>
+<badger-element>
   <div>${attrs => attrs.name}</div>
   <div>
     ${attrs => {
       if (attrs.name === 'Honey') return "Don't give a what?"
     }}
   </div>
-</badger>
+</badger-element>
 `
 ```
 
 ```html
-<badger name="Honey" />
-<badger name="Badgey" />
+<badger-element name="Honey" />
+<badger-element name="Badgey" />
 ```
 
 Ends up creating a full DOM of.
 
 ```html
-<badger>
+<badger-element>
   <div>Honey</div>
   <div>Don't give a what?</div>
-</badger>
-<badger>
+</badger-element>
+<badger-element>
   <div>Badgey</div>
-</badger>
+</badger-element>
 ```
 
 You can set properties in the future and trigger a diff'd updated (like React).
 
 ```javascript
-document.querySelector('badger').set('name', 'Not Honey')
+document.querySelector('badger-element').set('name', 'Not Honey')
 ```
 
 Would change:
 
 ```html
-<badger>
+<badger-element>
   <div>Honey</div>
   <div>Don't give a what?</div>
-</badger>
+</badger-element>
 ```
 
 To:
 
 ```html
-<badger>
+<badger-element>
   <div>Not Honey</div>
-</badger>
+</badger-element>
 ```
 
 Constructors are supported as well:
@@ -101,9 +101,9 @@ Constructors are supported as well:
 // You can also add constructors
 shaolin`
 ${ element => console.log('Called during construction.') }
-<badger>
+<badger-element>
   <div>${attrs => attrs.name}</div>
-</badger>
+</badger-element>
 `
 ```
 
@@ -118,9 +118,9 @@ ${ element => {
     console.log(value)
   })
 } }
-<badger></badger>
+<badger-element></badger-element>
 `
-document.querySelector('badger').set('nickname', 'asdf')
+document.querySelector('badger-element').set('nickname', 'asdf')
 ```
 
 Also, the return value is the constructor. So you can subclass to create new
@@ -128,7 +128,7 @@ components like so.
 
 ```javascript
 
-const Badger = shaolin`<badger></badger>`
+const Badger = shaolin`<badger-element></badger-element>`
 
 const MyBadger extends Badger {}
 shaolin.define('my-badger', MyBadger)
@@ -136,3 +136,43 @@ shaolin.define('my-badger', MyBadger)
 
 You can also define Shadow DOM after the custom element.
 
+## API
+
+### element.set(key, value[, noUpdate])
+
+Set a property on the component.
+
+While initial values tend to be set by the element attributes it is often
+necessary to set values programatically or set complex values in JavaScript.
+
+Third optional property suppresses an update of the components contents by
+calling all the dynamic functions and performing a DOM diff.
+
+### element.get(key)
+
+Return a model property from the component.
+
+### element.on(key, callback)
+
+Attach an event listener for when a model property is set or updated.
+
+This is particular useful to use in the contructor before any model properties
+are ever set.
+
+### Special properties
+
+#### 'connected'
+
+Set when the component is added or removed from the DOM.
+
+```javascript
+let TestConnected = shaolin`
+${ elem => elem.on('connected', () => console.log('connected')) }
+<test-connected>
+</test-connected>
+`
+let el = new TestConnected()
+console.log('created')
+document.body.appendChild(el)
+// Will now print "connected"
+```
