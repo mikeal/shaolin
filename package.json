@@ -20,5 +20,13 @@
     "browserify": "^13.1.0",
     "budo": "^9.2.1",
     "standard": "^8.4.0"
+  },
+  "homepage": "https://github.com/mikeal/shaolin",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mikeal/shaolin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mikeal/shaolin/issues"
   }
 }
