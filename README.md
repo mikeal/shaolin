@@ -35,6 +35,7 @@ ${ elem => { /* constructor */ } }
   <span>shadow content</span>
 </div>
 <slot></slot>
+`
 ```
 
 Now let's back up and look at a simpler example.
