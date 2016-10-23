@@ -134,12 +134,14 @@ function shaolin (strings, ...values) {
       self.constructors = parsed.constructors
       self.destructors = parsed.destructors
 
+      self.db = {}
       self.constructors.forEach(c => c(self))
+      self.constructing = false
 
       /* Init properties into the Model */
-      self.db = attributes(self)
-      for (let key in self.db) {
-        self.emit(key, self.db[key])
+      let attrs = attributes(self)
+      for (let key in attrs) {
+        self.set(key, attrs[key], true)
       }
 
       if (parsed.shadowStrings.length) {
@@ -162,7 +164,6 @@ function shaolin (strings, ...values) {
       self.template = view(self.getAttributes())
       self.template.yoyoOpts.childrenOnly = true
       yo.update(this, self.template, {childrenOnly: true})
-      self.constructing = false
     }
 
     connectedCallback () {
@@ -174,15 +175,12 @@ function shaolin (strings, ...values) {
     }
 
     update () {
+      console.log(this.template)
       let newel = this.template.processUpdate(this.getAttributes())
       yo.update(this, newel, {childrenOnly: true})
     }
 
     set (key, value, noUpdate) {
-      if (!this.db) {
-        let msg = `Cannot get properties until construction is finished, use \`elem.on('${key}', callback)\` instead.`
-        throw new Error(msg)
-      }
       if (typeof value === 'string' ||
           typeof value === 'boolean' ||
           typeof value === 'number' ||
@@ -192,11 +190,18 @@ function shaolin (strings, ...values) {
         this.setAttribute(key, value)
       }
       this.db[key] = value
-      this.emit(key, value)
+      if (this.constructing) {
+        process.nextTick(() => this.emit(key, value))
+      } else {
+        this.emit(key, value)
+      }
       if (!this.constructing && !noUpdate) this.update()
     }
 
     get (key) {
+      if (this.constructing) {
+        throw new Error('Cannot get properties during construction.')
+      }
       return this.db[key]
     }
 
