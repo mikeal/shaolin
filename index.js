@@ -179,7 +179,7 @@ function shaolin (strings, ...values) {
     }
 
     set (key, value, noUpdate) {
-      if (!db) {
+      if (!this.db) {
         let msg = `Cannot get properties until construction is finished, use \`elem.on('${key}', callback)\` instead.`
         throw new Error(msg)
       }
