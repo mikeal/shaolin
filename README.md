@@ -1,7 +1,7 @@
 # Simple functional Web Components
 
 You can easily define new custom elements with constructors,
-reactive functions rendering functions, and Shadow DOM.
+reactive rendering functions, and Shadow DOM.
 
 Let's take a quick look at all the features.
 
