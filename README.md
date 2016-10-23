@@ -6,7 +6,7 @@ reactive functions rendering functions, and Shadow DOM.
 Let's take a quick look at all the features.
 
 ```javascript
-const shaolin = require('shaolin)
+const shaolin = require('shaolin')
 
 shaolin`
 ${ elem => { /* constructor */ } }
