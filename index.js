@@ -40,6 +40,9 @@ function parse (strings, values) {
   let closer = `</${name}>`
   let closePos = fullstring.lastIndexOf(closer)
 
+  if (openPos === -1) throw new Error('Cannot find open position.')
+  if (closePos === -1) throw new Error('Cannot find close position.')
+
   for (let posName in valueMap) {
     let pos = +posName.slice(0, posName.indexOf('-'))
     let val = valueMap[posName]
@@ -85,7 +88,7 @@ function parse (strings, values) {
       }
       pos = pos + str.length
     }
-    iter(0)
+    iter()
     i++
   }
 
@@ -127,12 +130,17 @@ function shaolin (strings, ...values) {
       self = super(self)
       self.constructing = true
       self.view = view
-      self.db = attributes(this)
       self.eventCallbacks = {}
       self.constructors = parsed.constructors
       self.destructors = parsed.destructors
 
       self.constructors.forEach(c => c(self))
+
+      /* Init properties into the Model */
+      self.db = attributes(self)
+      for (let key in self.db) {
+        self.emit(key, self.db[key])
+      }
 
       if (parsed.shadowStrings.length) {
         let parsedValues = parsed.shadowValues.map(v => {
@@ -171,6 +179,10 @@ function shaolin (strings, ...values) {
     }
 
     set (key, value, noUpdate) {
+      if (!db) {
+        let msg = `Cannot get properties until construction is finished, use \`elem.on('${key}', callback)\` instead.`
+        throw new Error(msg)
+      }
       if (typeof value === 'string' ||
           typeof value === 'boolean' ||
           typeof value === 'number' ||
