@@ -1,5 +1,7 @@
 # Simple Functional Web Components
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/mikeal/shaolin.svg)](https://greenkeeper.io/)
+
 You can easily define new custom elements with constructors,
 reactive rendering functions, and Shadow DOM.
 
